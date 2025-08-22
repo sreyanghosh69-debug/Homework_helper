@@ -1,47 +1,34 @@
-import express from "express";
-import fetch from "node-fetch";
-import cors from "cors";
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const axios = require("axios");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Enable CORS (so frontend can call backend)
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// Environment variable for API key
-const API_KEY = process.env.OPENAI_API_KEY; // or DEEPSEEK_API_KEY
-
-// Route: Handle homework questions
 app.post("/ask", async (req, res) => {
-  const { question } = req.body;
-
   try {
-    // Call OpenAI/DeepSeek API
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo", // or "deepseek-chat" if using DeepSeek
+    const { question } = req.body;
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: question }],
-      }),
-    });
-
-    const data = await response.json();
-
-    res.json({
-      answer: data.choices[0].message.content,
-    });
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    res.json({ answer: response.data.choices[0].message.content });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Something went wrong" });
+    console.error(error.response?.data || error.message);
+    res.status(500).json({ error: "Something went wrong!" });
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
