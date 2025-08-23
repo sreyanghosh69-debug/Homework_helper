@@ -7,11 +7,15 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// API key stored in Render environment variable
-const API_KEY = process.env.homework_helper;
+// Root test endpoint
+app.get("/", (req, res) => {
+  res.json({ status: "✅ Backend is alive and working!" });
+});
 
-app.post("/api/ask", async (req, res) => {
+// Homework helper endpoint
+app.post("/ask", async (req, res) => {
   const { question } = req.body;
+  console.log("📩 Incoming question:", question);
 
   if (!question) {
     return res.status(400).json({ error: "No question provided" });
@@ -19,26 +23,31 @@ app.post("/api/ask", async (req, res) => {
 
   try {
     const response = await axios.post(
-      "https://api.deepseek.com/v1/chat/completions",  // provider endpoint (hidden from users)
+      "https://api.deepseek.com/v1/chat/completions",
       {
         model: "deepseek-chat",
         messages: [{ role: "user", content: question }],
       },
       {
         headers: {
-          "Authorization": `Bearer ${API_KEY}`,
+          "Authorization": `Bearer ${process.env.homework_helper}`, // env var
           "Content-Type": "application/json",
         },
       }
     );
 
+    console.log("✅ AI Response:", response.data);
+
     const answer =
-      response.data.choices[0].message?.content || "No response from the AI";
+      response.data.choices[0].message?.content || "No response from AI";
 
     res.json({ answer });
   } catch (error) {
-    console.error("AI API error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Something went wrong with the AI service" });
+    console.error("❌ API Error:", error.response?.data || error.message);
+    res.status(500).json({
+      error: "Something went wrong with AI API",
+      details: error.response?.data || error.message,
+    });
   }
 });
 
@@ -46,5 +55,3 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
-
-
