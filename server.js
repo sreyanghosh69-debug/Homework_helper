@@ -1,21 +1,25 @@
 const express = require("express");
 const axios = require("axios");
-const cors = require("cors");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+const PORT = process.env.PORT || 10000;
 
-// Root test endpoint
+// ✅ Use your env variable name from Render (kju)
+const API_KEY = process.env.kju;
+
+app.use(bodyParser.json());
+app.use(cors());
+
+// Health check route
 app.get("/", (req, res) => {
   res.json({ status: "✅ Backend is alive and working!" });
 });
 
-// Homework helper endpoint
+// AI route
 app.post("/ask", async (req, res) => {
   const { question } = req.body;
-  console.log("📩 Incoming question:", question);
 
   if (!question) {
     return res.status(400).json({ error: "No question provided" });
@@ -30,18 +34,15 @@ app.post("/ask", async (req, res) => {
       },
       {
         headers: {
-          "Authorization": `Bearer ${process.env.homework_helper}`, // env var
+          "Authorization": `Bearer ${API_KEY}`,
           "Content-Type": "application/json",
         },
       }
     );
 
-    console.log("✅ AI Response:", response.data);
-
-    const answer =
-      response.data.choices[0].message?.content || "No response from AI";
-
-    res.json({ answer });
+    res.json({
+      answer: response.data.choices[0].message.content,
+    });
   } catch (error) {
     console.error("❌ API Error:", error.response?.data || error.message);
     res.status(500).json({
@@ -51,7 +52,6 @@ app.post("/ask", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
